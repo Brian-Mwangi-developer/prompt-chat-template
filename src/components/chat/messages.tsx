@@ -1,32 +1,102 @@
+"use client";
+
+import { ArrowDownIcon } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import type { ChatMessage, ChatStatus, CodeArtifact } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Greeting } from "./greeting";
-import { useRef } from "react";
-import { ArrowDownIcon } from "lucide-react";
+import { PreviewMessage, ThinkingMessage } from "./message";
 
+type MessagesProps = {
+  chatId: string;
+  status: ChatStatus;
+  messages: ChatMessage[];
+  isReadonly: boolean;
+  isLoading?: boolean;
+  onEditMessage?: (message: ChatMessage) => void;
+  onOpenArtifact?: (artifact: CodeArtifact) => void;
+};
 
-function PureMessages(){
-    const messagesContainerRef = useRef<HTMLTextAreaElement>(null)
-    return(
-        <div className="relative flex-1 bg-background">
-            <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
-                <Greeting/>
-            </div>
-            <div className={cn(
-                "absolute inset-0 touch-pan-y overflow-y-auto bg-background"
-            )}>
-                <div className="mx-auto flex min-h-full min-w-0 max-w-4xl flex-col gap-5 px-2 py-6 md:gap-7 md:px-4">
+export function Messages({
+  chatId,
+  status,
+  messages,
+  isReadonly,
+  isLoading,
+  onEditMessage,
+  onOpenArtifact,
+}: MessagesProps) {
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [isAtBottom, setIsAtBottom] = useState(true);
 
-                </div>
+  useEffect(() => {
+    if (isAtBottom) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages, isAtBottom]);
 
-            </div>
-            <button
+  const handleScroll = () => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+    const { scrollTop, scrollHeight, clientHeight } = container;
+    const atBottom = scrollHeight - scrollTop - clientHeight < 50;
+    setIsAtBottom(atBottom);
+  };
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    setIsAtBottom(true);
+  };
+
+  return (
+    <div className="relative flex-1 bg-background">
+      {messages.length === 0 && !isLoading && (
+        <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
+          <Greeting />
+        </div>
+      )}
+      <div
+        className={cn(
+          "absolute inset-0 touch-pan-y overflow-y-auto",
+          messages.length > 0 ? "bg-background" : "bg-transparent"
+        )}
+        onScroll={handleScroll}
+        ref={messagesContainerRef}
+      >
+        <div className="mx-auto flex min-h-full min-w-0 max-w-4xl flex-col gap-5 px-2 py-6 md:gap-7 md:px-4">
+          {messages.map((message, index) => (
+            <PreviewMessage
+              chatId={chatId}
+              isLoading={status === "streaming" && messages.length - 1 === index}
+              isReadonly={isReadonly}
+              key={message.id}
+              message={message}
+              onEdit={onEditMessage}
+              onOpenArtifact={onOpenArtifact}
+            />
+          ))}
+
+          {status === "submitted" && messages.at(-1)?.role !== "assistant" && (
+            <ThinkingMessage />
+          )}
+
+          <div className="min-h-6 min-w-6 shrink-0" ref={messagesEndRef} />
+        </div>
+      </div>
+
+      <button
         aria-label="Scroll to bottom"
-        className="absolute bottom-4 left-1/2 z-10 flex -translate-x-1/2 items-center rounded-full border border-border/50 bg-card/90 px-3.5 shadow-[var(--shadow-float)] backdrop-blur-lg transition-all duration-200 h-7 text-[10px] pointer-events-auto scale-100 opacity-100"
-        onClick={() => scrollToBottom("smooth")}
+        className={`absolute bottom-4 left-1/2 z-10 flex -translate-x-1/2 items-center rounded-full border border-border/50 bg-card/90 px-3.5 shadow-lg backdrop-blur-lg transition-all duration-200 h-7 text-[10px] ${
+          isAtBottom
+            ? "pointer-events-none scale-90 opacity-0"
+            : "pointer-events-auto scale-100 opacity-100"
+        }`}
+        onClick={scrollToBottom}
         type="button"
       >
         <ArrowDownIcon className="size-3 text-muted-foreground" />
       </button>
-        </div>
-    )
+    </div>
+  );
 }

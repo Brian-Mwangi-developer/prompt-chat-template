@@ -1,8 +1,5 @@
+import { ChatShell } from "@/components/chat/chat-shell";
 
 export default function Home() {
-  return (
-    <div className="">
-
-    </div>
-  );
+  return <ChatShell />;
 }
