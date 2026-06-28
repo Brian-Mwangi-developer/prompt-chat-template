@@ -1,36 +1,76 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Prompt Chat Template
+
+A production-ready chat UI template built with Next.js, designed as a starting point for integrating AI models. The UI is fully functional with simulated responses — swap in any AI provider (OpenAI, Anthropic, etc.) to go live.
+
+## Features
+
+- **Streaming chat UI** — character-by-character streamed assistant responses
+- **Tool call simulation** — weather cards, code artifacts, and reasoning blocks rendered as structured UI
+- **Code artifact panel** — syntax-highlighted code viewer (via shiki) that slides in as a right sidebar, with a floating toolbar for copy, run, and version actions
+- **Thinking / reasoning** — collapsible reasoning block that auto-opens while streaming and auto-closes when done, showing elapsed time
+- **Weather tool card** — inline weather widget rendered from a simulated tool call
+- **Slash commands** — type `/` to open a command menu (`/theme`, `/clear`, `/new`, etc.)
+- **File attachments** — attach images or files to messages via the paperclip button
+- **Light / dark theme** — toggle via the theme button or `/theme` slash command, powered by `next-themes`
+- **Suggested actions** — animated suggestion pills shown when the chat is empty
+- **Multimodal input** — textarea with slash command menu, attachment preview, stop/send buttons
+
+## Tech Stack
+
+- **Framework** — Next.js 16 (App Router)
+- **Language** — TypeScript (strict mode)
+- **Styling** — Tailwind CSS v4
+- **Components** — shadcn/ui
+- **Syntax highlighting** — shiki (`github-light` / `github-dark` themes)
+- **Animations** — framer-motion
+- **Theme** — next-themes
+- **Package manager** — pnpm
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) to see the chat UI.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Connecting an AI Model
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+All simulated responses live in `src/components/chat/chat-shell.tsx` inside `getSimulatedResponse()` and the `sendMessage` callback. Replace the `setTimeout` / `setInterval` streaming logic with a real API call to any model provider.
 
-## Learn More
+The message types in `src/lib/types.ts` are already structured to support:
+- `text` parts — plain streamed text
+- `reasoning` parts — thinking blocks
+- `tool-weather` parts — weather tool results
+- `tool-code` parts — code artifact results
+- `file` parts — attachments
 
-To learn more about Next.js, take a look at the following resources:
+## Project Structure
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```
+src/
+  app/
+    page.tsx                  # Entry point — renders ChatShell
+  components/
+    ai-elements/              # Low-level UI primitives (shimmer, reasoning, code block)
+    chat/
+      chat-shell.tsx          # Main layout + simulated response logic
+      messages.tsx            # Message list with scroll tracking
+      message.tsx             # Per-message renderer (all part types)
+      multimodal-input.tsx    # Prompt input box
+      artifact-panel.tsx      # Code viewer sidebar + floating toolbar
+      weather.tsx             # Weather tool card
+      message-reasoning.tsx   # Reasoning/thinking block
+      slash-commands.tsx      # Slash command menu
+      suggested-actions.tsx   # Empty state suggestion pills
+    ui/                       # shadcn/ui components
+  lib/
+    types.ts                  # Core type definitions
+    utils.ts                  # generateUUID, sanitizeText, cn
+    constants.ts              # Suggested action strings
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## License
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+MIT
