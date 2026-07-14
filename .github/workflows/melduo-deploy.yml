@@ -26,10 +26,10 @@ jobs:
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: "10"
+          version: "latest"
 
       - name: Install app dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
       - name: Write .env file
         run: echo "${{ secrets.PROD_ENV }}" > .env
