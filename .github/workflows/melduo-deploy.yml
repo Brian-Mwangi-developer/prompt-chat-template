@@ -1,0 +1,64 @@
+name: Melduo Deploy
+
+on:
+  push:
+    branches:
+      - "melduo/deploy-20260714-112521"
+      - "main"
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Install app dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Write .env file
+        run: echo "${{ secrets.PROD_ENV }}" > .env
+
+      - name: Build Next.js static export
+        run: pnpm build
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::847460071934:role/MelduoOidc-cmrkk5qc
+          aws-region: us-east-1
+
+      - name: Bootstrap CDK
+        run: npx cdk bootstrap
+        working-directory: infra
+
+      - name: Deploy CDK stack
+        run: npx cdk deploy --require-approval never
+        working-directory: infra
+
+      - name: Read SSM parameters
+        id: ssm
+        run: |
+          BUCKET=$(aws ssm get-parameter --name /melduo-app-cmrkk5qc/bucket-name --query Parameter.Value --output text)
+          DIST_ID=$(aws ssm get-parameter --name /melduo-app-cmrkk5qc/distribution-id --query Parameter.Value --output text)
+          echo "bucket=$BUCKET" >> $GITHUB_OUTPUT
+          echo "dist_id=$DIST_ID" >> $GITHUB_OUTPUT
+
+      - name: Sync static export to S3
+        run: aws s3 sync out/ s3://${{ steps.ssm.outputs.bucket }} --delete
+
+      - name: Invalidate CloudFront cache
+        run: aws cloudfront create-invalidation --distribution-id ${{ steps.ssm.outputs.dist_id }} --paths "/*"
